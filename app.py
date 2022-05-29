@@ -2,10 +2,11 @@ import os
 
 import matplotlib.pyplot as plt
 from flask import Flask, render_template, request, redirect
-# from flask_bootstrap import Bootstrap5
 
 from filters_handler import *
 from image_handler import *
+
+# from flask_bootstrap import Bootstrap5
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -70,6 +71,36 @@ def setup(filename):
         "ecart_type": ecart_type(list(image.getdata()))
     })
 
+    # prepare histogram
+    histogram = histogramme(list(image_env.get("image").getdata()))
+    fig = plt.figure()
+    fig.set_tight_layout(False)
+    ax = fig.add_axes([0, 0, 1, 1])
+    langs = range(VMAX + 1)
+    ax.bar(langs, histogram)
+    plt.savefig("static/output/histogramme.png", bbox_inches='tight')
+    plt.close(fig)
+
+    # prepare histogramme cumule
+    histogram = histogram_cumule(histogramme(list(image_env.get("image").getdata())))
+    fig = plt.figure()
+    fig.set_tight_layout(False)
+    ax = fig.add_axes([0, 0, 1, 1])
+    langs = range(VMAX + 1)
+    ax.bar(langs, histogram)
+    plt.savefig("static/output/histogramme_cumule.png", bbox_inches='tight')
+    plt.close(fig)
+
+    # prepare histogramme egalise
+    egal = egaliseur(histogramme(list(image_env.get("image").getdata())), image_env["image"])
+    fig = plt.figure()
+    fig.set_tight_layout(False)
+    ax = fig.add_axes([0, 0, 1, 1])
+    langs = range(VMAX + 1)
+    ax.bar(langs, egal)
+    plt.savefig("static/output/egaliseur.png", bbox_inches='tight')
+    plt.close(fig)
+
 
 @app.route('/histogramme')
 def hist():
@@ -117,8 +148,8 @@ def linear_trans():
 
     new_data = transformation_lineaire(hist, image)
 
-    save_image(image, new_data, "lineartrans.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "lineartrans" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/linear_sature/<min>/<max>')
@@ -126,8 +157,8 @@ def linear_trans_sat(min, max):
     image = image_env["image"]
     new_data = transformation_lineaire_saturee(image, int(min), int(max))
 
-    save_image(image, new_data, "lineartranssat.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "lineartranssat" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/dilater/<a>/<b>')
@@ -135,8 +166,8 @@ def dilater(a, b):
     image = image_env["image"]
     new_data = dilatation(image, int(a), int(b))
 
-    save_image(image, new_data, "imagedilatee.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "imagedilatee" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/dilater_milieu/<a>/<b>/<c>')
@@ -144,48 +175,49 @@ def dilater_milieu(a, b, c):
     image = image_env["image"]
     new_data = dilatation_milieu(image, int(a), int(b), int(c))
 
-    save_image(image, new_data, "imagedilatee_milieu.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "imagedilatee_milieu" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/invert')
 def invert_colors():
     image = image_env["image"]
     new_data = color_inversion(image)
-    save_image(image, new_data, "couleursinverses.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "couleursinverses" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/make_some_noise')
 def make_some_noise():
     image = image_env["image"]
     new_data = noise_maker(image)
-    save_image(image, new_data, "filters/dog_noise.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "noise" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/filter/moyenne/<size>')
 def filtrer_moyenne(size):
-    image = read_image("output/filters/dog_noise.jpg")
+    image = read_image("static/output/noise" + image_env["info"]["filename"])
     new_data = filtre_moyenne(image, int(size))
-    save_image(image, new_data, "filters/dog_filtered" + str(size) + ".jpg")
-    return "success"
+    img_data = save_image(image, new_data, "filtered_moy" + str(size) + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/filter/mediane/<size>')
 def filtrer_mediane(size):
-    image = read_image("output/filters/dog_noise.jpg")
+    image = read_image("static/output/noise" + image_env["info"]["filename"])
     new_data = filtre_mediane(image, int(size))
-    save_image(image, new_data, "filters/dog_filtered_mediane" + str(size) + ".jpg")
-    return "success"
+    img_data = save_image(image, new_data, "filtered_mediane" + str(size) + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
 
 
 @app.route('/filter/rehausseur')
 def filtrer_rehausseur():
     image = image_env["image"]
     new_data = filtre_rehausseur(image, 3)
-    save_image(image, new_data, "filters/dog_filtered_rehausseur3.jpg")
-    return "success"
+    img_data = save_image(image, new_data, "filtered_rehausseur" + image_env["info"]["filename"])
+    return render_template('result.html', img_data=img_data.decode('utf-8'))
+
 
 @app.route('/viewdata')
 def afficher_donnees():

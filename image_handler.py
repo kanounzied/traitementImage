@@ -1,6 +1,7 @@
 import math
-
+import base64
 import numpy as np
+from io import BytesIO
 from PIL import Image
 from matplotlib import image
 from matplotlib import pyplot
@@ -13,9 +14,12 @@ def read_image(path: str):
 
 
 def save_image(old_image: Image, new_data: list, name: str):
+    buffered = BytesIO()
     new_image = Image.new(old_image.mode, old_image.size)
     new_image.putdata(new_data)
     new_image.save("static/output/" + name)
+    new_image.save(buffered, format=old_image.format)
+    return base64.b64encode(buffered.getvalue())
 
 
 def moyenne(data: list):

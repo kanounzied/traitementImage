@@ -1,3 +1,4 @@
+{#{% extends 'bootstrap/base.html' %}#}
 <html lang="en">
 {% block head %}
     <head>
@@ -20,14 +21,17 @@
             <div class="col-md-6">
                 <div class="row">
                     <div class="col-md-6 metrics_pic">
+                        histogramme <br>
                         <img src="{{ metrics.histogramme_path }}" alt="">
                     </div>
                     <div class="col-md-6 metrics_pic">
+                        histogramme cumule <br>
                         <img src="{{ metrics.histogramme_cumule_path }}" alt="">
                     </div>
                 </div>
                 <div class="row align-items-center ">
                     <div class="col-md-6 metrics_pic">
+                        histogramme egalise <br>
                         <img src="{{ metrics.egaliseur_path }}" alt="">
                     </div>
                     <div class="col-md-6 metrics">
