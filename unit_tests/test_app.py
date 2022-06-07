@@ -23,8 +23,6 @@ class Testhistogramme(unittest.TestCase):
         # When
         result = list(histogramme(image_data, 15))
 
-        print(result)
-
         # Then
         assert expected_value == result
 
