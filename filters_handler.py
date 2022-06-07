@@ -88,7 +88,7 @@ def filtre_rehausseur(img: Image, size=3):
             for k in range(-(size - 1) // 2, (size // 2) + 1):
                 for l in range(-(size - 1) // 2, (size // 2) + 1):
                     try:
-                        cell_value += data[i + k][j + l] * filtre[k+1][l+1]
+                        cell_value += data[i + k][j + l] * filtre[k + 1][l + 1]
                         # added_numbers += 1
                     except IndexError:
                         exception_occ = True
@@ -98,6 +98,8 @@ def filtre_rehausseur(img: Image, size=3):
             else:
                 new_data[i][j] = cell_value
     return new_data.reshape((img.size[0] * img.size[1],))
+
+
 # offset = len(filtre) // 2
 #     for i in range(offset, img.size[0] - offset):
 #         for j in range(offset, img.size[1] - offset):
@@ -111,3 +113,39 @@ def filtre_rehausseur(img: Image, size=3):
 #                     except IndexError:
 #                         pass
 #             new_data[i][j] = cell_value
+
+
+def apply_filter(img: Image, filtre):
+    size = filtre.shape[0]
+    data = np.array(list(img.getdata())).reshape((img.size[0], img.size[1]))
+    new_data = np.zeros((img.size[0], img.size[1]))
+    for i in range(img.size[0]):
+        for j in range(img.size[1]):
+            cell_value = 0
+            added_numbers = 0
+            for k in range(-(size - 1) // 2, (size // 2) + 1):
+                for l in range(-(size - 1) // 2, (size // 2) + 1):
+                    try:
+                        cell_value += data[i + k][j + l] * filtre[k + 1][l + 1]
+                        added_numbers += 1
+                    except IndexError:
+                        pass
+            new_data[i][j] = cell_value // added_numbers
+    return new_data.reshape((img.size[0] * img.size[1],))
+
+
+def erosion(img: Image, size=3):
+    data = np.array(img.getdata()).reshape((img.size[0], img.size[1], 3))
+    new_data = np.zeros((img.size[0], img.size[1]), dtype=tuple)
+    for i in range(img.size[0]):
+        for j in range(img.size[1]):
+            appartient = True
+            for k in range(-(size - 1) // 2, (size // 2) + 1):
+                for l in range(-(size - 1) // 2, (size // 2) + 1):
+                    try:
+                        if data[i + k][j + l][0] == VMAX and data[i + k][j + l][1] == VMAX and data[i + k][j + l][2] == VMAX:
+                            appartient = False
+                    except IndexError:
+                        pass
+            new_data[i][j] = (0, 0, 0) if appartient else (VMAX, VMAX, VMAX)
+    return new_data.reshape((img.size[0] * img.size[1]))

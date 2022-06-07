@@ -1,7 +1,8 @@
-import math
 import base64
-import numpy as np
+import math
 from io import BytesIO
+
+import numpy as np
 from PIL import Image
 from matplotlib import image
 from matplotlib import pyplot
@@ -26,7 +27,17 @@ def moyenne(data: list):
     moyenne = 0
     for i in data:
         moyenne += i
-    return moyenne / len(data)
+    return round(moyenne / len(data), 3)
+
+
+def moyenne_rgb(data: list):
+    (r, g, b) = (0, 0, 0)
+    data_len = len(data)
+    for i in data:
+        r += i[0]
+        g += i[1]
+        b += i[2]
+    return round(r / data_len, 3), round(g / data_len, 3), round(b / data_len, 3)
 
 
 def ecart_type(data: list):
@@ -34,13 +45,36 @@ def ecart_type(data: list):
     moy = moyenne(data)
     for i in data:
         sigma_carre += (i - moy) ** 2
-    return math.sqrt(sigma_carre / len(data))
+    return round(math.sqrt(sigma_carre / len(data)), 3)
 
 
-def histogramme(data: list):
+def ecart_type_rgb(data: list):
+    sigma_carre_r, sigma_carre_g, sigma_carre_b = (0, 0, 0)
+    r, g, b = moyenne_rgb(data)
+    data_len = len(data)
+    for i in data:
+        sigma_carre_r += (i[0] - r) ** 2
+        sigma_carre_g += (i[1] - r) ** 2
+        sigma_carre_b += (i[2] - r) ** 2
+    return round(math.sqrt(sigma_carre_r / data_len), 3), round(math.sqrt(sigma_carre_g / data_len), 3), round(
+        math.sqrt(sigma_carre_b / data_len), 3)
+
+
+def histogramme(data: list, VMAX=255):
     histogram = np.zeros(VMAX + 1)
     for i in data:
-        histogram[i] += 1
+        if i >= 0:
+            histogram[i] += 1
+        else:
+            raise ValueError('image cannot contain negative data')
+    return histogram
+
+
+def histogramme_rgb(data: list):
+    histogram = np.zeros(VMAX + 1)
+    for (r, g, b) in data:
+        rgb = (r + g + b) // 3
+        histogram[rgb] += 1
     return histogram
 
 
@@ -73,9 +107,14 @@ def A(p):
 def egaliseur(hist, img: Image):
     a = A(p(hist, img))
     egaliseur = np.zeros(len(hist))
+    new_data = np.zeros(len(img.getdata()))
+    img_data = list(img.getdata())
     for i in range(len(a)):
         egaliseur[int(a[i])] += hist[i]
-    return egaliseur
+    for i in range(len(img.getdata())):
+        print()
+        new_data[i] = a[img_data[i]]
+    return egaliseur, new_data
 
 
 def transformation_lineaire(hist, img: Image):
@@ -161,6 +200,81 @@ def droite2(x, a, b, v_max):
 
 def droite3_milieu(x, a, b, c, v_max):
     return (v_max / 2) * ((x + c) / (c + (v_max / 2)))
+
+
+def seuiller_et(img: Image, r, g, b):
+    img_data = list(img.getdata())
+    new_data = np.empty(img.size[0] * img.size[1], dtype=tuple)
+    for i in range(len(img_data)):
+        if img_data[i][0] > r and img_data[i][1] > g and img_data[i][2] > b:
+            new_data[i] = (VMAX, VMAX, VMAX)
+        else:
+            new_data[i] = (0, 0, 0)
+    return new_data
+
+
+def seuiller_ou(img: Image, r, g, b):
+    img_data = list(img.getdata())
+    new_data = np.empty(img.size[0] * img.size[1], dtype=tuple)
+    for i in range(len(img_data)):
+        if img_data[i][0] > r or img_data[i][1] > g or img_data[i][2] > b:
+            new_data[i] = (VMAX, VMAX, VMAX)
+        else:
+            new_data[i] = (0, 0, 0)
+    return new_data
+
+
+def seuiller_auto(img: Image, hist: list):
+    img_data = list(img.getdata())
+    new_data = np.empty(img.size[0] * img.size[1], dtype=tuple)
+    threshold = estimate_threshold(hist, img.size[0] * img.size[1])
+    print("estimated threshold", threshold)
+    for i in range(len(img_data)):
+        if (img_data[i][0] + img_data[i][1] + img_data[i][2]) > (threshold * 3):
+            new_data[i] = (VMAX, VMAX, VMAX)
+        else:
+            new_data[i] = (0, 0, 0)
+    return new_data
+
+
+def estimate_threshold(hist: list, nb_pixels):
+    thresholds = np.empty(len(hist))
+    for i in range(len(hist)):
+        thresholds[i] = calc_thresh(hist, i, nb_pixels)
+    print("thresholds")
+    print(thresholds)
+    print(np.amax(thresholds))
+    return np.argmax(thresholds)
+
+
+def calc_thresh(hist: list, thresh_index, nb_pixels):
+    wb = 0
+    ub = 0
+    nb_b = 0
+
+    wf = 0
+    uf = 0
+    nb_f = 0
+
+    for i in range(len(hist)):
+        if i < thresh_index:
+            wb += hist[i]
+            ub += i * hist[i]
+            nb_b += hist[i]
+        else:
+            wf += hist[i]
+            uf += i * hist[i]
+            nb_f += hist[i]
+
+    wb /= nb_pixels
+    wf /= nb_pixels
+
+    if ub != 0:
+        ub /= nb_b
+    if uf != 0:
+        uf /= nb_f
+
+    return round(wb * wf * ((ub - uf) ** 2), 3)
 
 
 def test1():
